@@ -39,40 +39,32 @@ test('validCourses는 무효 항목을 걸러낸다', () => {
   assert.equal(validCourses([makeCourse(), { name: 'x' }]).length, 1);
 });
 
-const BOUNDS = {
-  서울: { lat: [37.43, 37.7], lng: [126.76, 127.18] },
-  경기: { lat: [36.9, 38.0], lng: [126.5, 127.9] },
-};
-const bucket = (m) => (m <= 150 ? 'short' : m < 270 ? 'half' : 'full');
+// 실제 데이터(두루누비). 서울·경기 범위를 넉넉하게 잡아 지역 라벨이 엉뚱하지 않은지만 본다.
+const BOUNDS = { lat: [36.9, 38.3], lng: [126.3, 127.9] };
 
-test('샘플 데이터: 10개 이상, 모두 유효하고 샘플 표시', () => {
+test('실제 데이터: 10개 이상, 모두 유효, 출처 표기, 샘플 아님', () => {
   assert.ok(COURSES.length >= 10);
   for (const c of COURSES) {
     assert.equal(isValidCourse(c), true, c.id);
-    assert.equal(c.isSample, true);
-    assert.ok(c.name.startsWith('(샘플)'), c.name);
+    assert.equal(c.isSample, false, c.id);
+    assert.ok(c.source.includes('두루누비'), c.id);
   }
 });
 
-test('샘플 데이터: id 중복 없음, 경로 2점 이상, 첫 점이 start, 좌표가 지역 경계 안', () => {
+test('실제 데이터: id 중복 없음, 경로 2점 이상, 첫 점이 start, 마지막 점이 end, 좌표가 수도권 범위 안', () => {
   assert.equal(new Set(COURSES.map((c) => c.id)).size, COURSES.length);
   for (const c of COURSES) {
-    assert.ok(c.path.length >= 2, c.id);
+    assert.ok(c.path.length >= 2 && c.path.length <= 60, c.id);
     assert.deepEqual(c.path[0], [c.start.lat, c.start.lng], c.id);
-    const b = BOUNDS[c.region];
+    assert.deepEqual(c.path[c.path.length - 1], [c.end.lat, c.end.lng], c.id);
     for (const [lat, lng] of c.path) {
-      assert.ok(lat >= b.lat[0] && lat <= b.lat[1] && lng >= b.lng[0] && lng <= b.lng[1], `${c.id} ${lat},${lng}`);
+      assert.ok(lat >= BOUNDS.lat[0] && lat <= BOUNDS.lat[1] && lng >= BOUNDS.lng[0] && lng <= BOUNDS.lng[1], `${c.id} ${lat},${lng}`);
     }
   }
 });
 
-test('샘플 데이터: 시간 구간 3 × 지역 2 조합마다 최소 1개, 종일에 보통 포함', () => {
-  for (const region of ['서울', '경기']) {
-    for (const b of ['short', 'half', 'full']) {
-      assert.ok(COURSES.some((c) => c.region === region && bucket(c.durationMin) === b), `${region} ${b}`);
-    }
-  }
-  assert.ok(COURSES.some((c) => bucket(c.durationMin) === 'full' && c.difficulty === '보통'));
+test('실제 데이터: 난이도 상 코스는 들어 있지 않다(쉬움/보통만)', () => {
+  assert.ok(COURSES.every((c) => c.difficulty === '쉬움' || c.difficulty === '보통'));
 });
 
 test('id가 없거나 비어 있으면 무효', () => {

@@ -72,6 +72,13 @@ function weatherPoint({ origin, position }) {
   return origin === 'gyeonggi' ? REGION_CENTER.경기 : REGION_CENTER.서울;
 }
 
+function emptyMessage(result, cond) {
+  if (result.noNearby) return `내 위치에서 ${MAX_NEARBY_KM}km 안에 맞는 코스가 없어요. 출발 지역을 경기로 골라 보세요.`;
+  if (cond.origin === 'seoul') return '서울에는 아직 수록된 코스가 없어요. 경기를 골라 보세요.';
+  if (cond.time === 'short') return '2시간 안팎 코스는 아직 없어요. 반나절이나 하루 종일을 골라 보세요.';
+  return EMPTY_DEFAULT;
+}
+
 async function search({ relaxTime = false } = {}) {
   const token = searches.next();
   const cond = { time: state.time, origin: state.origin };
@@ -100,11 +107,7 @@ async function search({ relaxTime = false } = {}) {
     state.weather = weather;
     state.cards = result.cards;
     state.canRelax = result.canRelax;
-    renderCards(
-      result.noNearby
-        ? `내 위치에서 ${MAX_NEARBY_KM}km 안에 맞는 코스가 없어요. 출발 지역을 서울이나 경기로 골라 보세요.`
-        : EMPTY_DEFAULT,
-    );
+    renderCards(emptyMessage(result, cond));
   } catch {
     if (searches.isCurrent(token)) setStatus('문제가 생겼어요. 잠시 뒤에 다시 시도해 주세요.');
   } finally {
