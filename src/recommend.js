@@ -44,7 +44,12 @@ export function recommend({ courses, time, origin, position, relaxTime = false }
   const rank = (c) => (c.course.difficulty === '쉬움' ? 0 : 1);
   const secondary = (c) =>
     c.distanceKm !== null ? c.distanceKm : Math.abs(c.course.durationMin - BUCKET_CENTER_MIN[time]);
-  candidates.sort((a, b) => rank(a) - rank(b) || secondary(a) - secondary(b));
+  // 내 위치 기준이면 가까운 순이 우선(난이도는 동률일 때만), 지역 선택이면 쉬움 코스가 우선.
+  candidates.sort((a, b) =>
+    origin === 'here'
+      ? secondary(a) - secondary(b) || rank(a) - rank(b)
+      : rank(a) - rank(b) || secondary(a) - secondary(b),
+  );
 
   const cards = candidates.slice(0, MAX_CARDS).map(({ course, distanceKm }) => ({
     course,

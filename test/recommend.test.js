@@ -32,13 +32,22 @@ test('시간 구간이 다른 코스는 나오지 않는다', () => {
   assert.deepEqual(r.cards.map((c) => c.course.id), ['a']);
 });
 
-test('쉬움이 보통보다 가까워도 쉬움이 먼저, mediumDifficulty 표시', () => {
-  const near = half('near', { difficulty: '보통', start: { lat: 37.5, lng: 127, name: 'n' } });
-  const far = half('far', { difficulty: '쉬움', start: { lat: 37.69, lng: 127.1, name: 'f' } });
-  const r = recommend({ courses: [near, far], time: 'half', origin: 'here', position: at(37.5, 127) });
-  assert.deepEqual(r.cards.map((c) => c.course.id), ['far', 'near']);
+test('지역 선택에서는 쉬움이 보통보다 먼저, mediumDifficulty 표시', () => {
+  const hard = half('hard', { difficulty: '보통', durationMin: 210 });
+  const easy = half('easy', { difficulty: '쉬움', durationMin: 260 });
+  const r = recommend({ courses: [hard, easy], time: 'half', origin: 'seoul', position: null });
+  assert.deepEqual(r.cards.map((c) => c.course.id), ['easy', 'hard']);
   assert.equal(r.cards[0].mediumDifficulty, false);
   assert.equal(r.cards[1].mediumDifficulty, true);
+});
+
+test('내 위치 선택에서는 난이도와 관계없이 가까운 순, 보통은 표시만 한다', () => {
+  const near = half('near', { difficulty: '보통', start: { lat: 37.5, lng: 127, name: 'n' } });
+  const far = half('far', { difficulty: '쉬움', start: { lat: 37.69, lng: 127.1, name: 'f' } });
+  const r = recommend({ courses: [far, near], time: 'half', origin: 'here', position: at(37.5, 127) });
+  assert.deepEqual(r.cards.map((c) => c.course.id), ['near', 'far']);
+  assert.ok(r.cards[0].distanceKm <= r.cards[1].distanceKm);
+  assert.equal(r.cards[0].mediumDifficulty, true);
 });
 
 test('내 위치 선택 시 같은 난이도 안에서 가까운 순, distanceKm은 숫자', () => {

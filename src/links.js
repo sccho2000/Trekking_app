@@ -16,3 +16,32 @@ export function buildDirectionsLinks({ from, to, mode, appname = APP_NAME }) {
   const web = `https://map.naver.com/p/directions/${start}/${to.lng},${to.lat},${name}/-/${WEB_MODE[mode]}`;
   return { app, web };
 }
+
+const MAX_WAYPOINTS = 5;
+const round5 = (n) => Math.round(n * 1e5) / 1e5;
+
+// path 안쪽 점 중 최대 MAX_WAYPOINTS개를 고르게 뽑는다.
+function pickWaypoints(path) {
+  const inner = path.slice(1, -1);
+  if (inner.length <= MAX_WAYPOINTS) return inner;
+  return Array.from({ length: MAX_WAYPOINTS }, (_, i) => inner[Math.round((i * (inner.length - 1)) / (MAX_WAYPOINTS - 1))]);
+}
+
+// 코스 전체를 네이버 지도에서 보기 위한 도보 경로 링크. 앱 스킴은 경유지를 지원하고,
+// 웹 URL은 경유지 형식을 확인하지 못해 출발~도착만 담는다. 지도 API 키는 필요 없다.
+export function buildCourseMapLinks(course, appname = APP_NAME) {
+  const path = course.path.length > 0 ? course.path : [[course.start.lat, course.start.lng], [course.end.lat, course.end.lng]];
+  const [sLat, sLng] = path[0].map(round5);
+  const [dLat, dLng] = path[path.length - 1].map(round5);
+  const sname = encodeURIComponent(course.start.name);
+  const dname = encodeURIComponent(`${course.name} 도착`);
+
+  const params = [`slat=${sLat}`, `slng=${sLng}`, `sname=${sname}`, `dlat=${dLat}`, `dlng=${dLng}`, `dname=${dname}`];
+  pickWaypoints(path).forEach(([lat, lng], i) => params.push(`v${i + 1}lat=${round5(lat)}`, `v${i + 1}lng=${round5(lng)}`));
+  params.push(`appname=${encodeURIComponent(appname)}`);
+
+  return {
+    app: `nmap://route/walk?${params.join('&')}`,
+    web: `https://map.naver.com/p/directions/${sLng},${sLat},${sname}/${dLng},${dLat},${dname}/-/walk`,
+  };
+}

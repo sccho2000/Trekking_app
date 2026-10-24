@@ -3,9 +3,8 @@ import { validCourses } from './courses.js';
 import { recommend, REGION_CENTER } from './recommend.js';
 import { fetchWeather, describeWeather } from './weather.js';
 import { cardHtml, escapeHtml } from './render.js';
-import { buildDirectionsLinks } from './links.js';
-import { loadNaverMap, showRoute } from './mapview.js';
-import { NAVER_MAP_CLIENT_ID } from '../config.js';
+import { buildDirectionsLinks, buildCourseMapLinks } from './links.js';
+import { showRoute } from './mapview.js';
 import { getPosition } from './geolocate.js';
 import { createSequencer } from './latest.js';
 import { openDirections } from './openLinks.js';
@@ -85,16 +84,19 @@ $('#region-prompt').addEventListener('click', (e) => {
   search();
 });
 
-const naverReady = loadNaverMap(NAVER_MAP_CLIENT_ID);
 
 function findCard(id) {
   return state.cards.find((c) => c.course.id === id);
 }
 
-async function previewCourse(card) {
+function previewCourse(card) {
+  // 클릭 직후 동기적으로 열어야 팝업 차단에 걸리지 않는다.
+  openDirections(buildCourseMapLinks(card.course), {
+    ua: navigator.userAgent, location: window.location, doc: document, win: window,
+  });
   $('#map-title').textContent = card.course.name;
   $('#map-panel').hidden = false;
-  showRoute($('#map'), card.course, await naverReady);
+  showRoute($('#map'), card.course);
   $('#map-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
