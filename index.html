@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>오늘 어디 걸을까</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <h1>오늘 어디 걸을까</h1>
+    <p class="lead">서울·경기 걷기 코스를 세 가지만 물어보고 골라 드려요.</p>
+
+    <section id="conditions" aria-label="조건 선택">
+      <div class="group" data-group="time">
+        <span class="label">시간</span>
+        <button type="button" class="chip" data-value="short">2시간 안팎</button>
+        <button type="button" class="chip" data-value="half">반나절</button>
+        <button type="button" class="chip" data-value="full">하루 종일</button>
+      </div>
+      <div class="group" data-group="origin">
+        <span class="label">출발</span>
+        <button type="button" class="chip" data-value="here">내 위치</button>
+        <button type="button" class="chip" data-value="seoul">서울</button>
+        <button type="button" class="chip" data-value="gyeonggi">경기</button>
+      </div>
+      <div class="group" data-group="move">
+        <span class="label">이동</span>
+        <button type="button" class="chip" data-value="transit">대중교통</button>
+        <button type="button" class="chip" data-value="car">자차</button>
+      </div>
+      <button type="button" id="go" class="primary big">코스 추천받기</button>
+    </section>
+
+    <p id="status" role="status" aria-live="polite"></p>
+
+    <section id="region-prompt" hidden>
+      <p>위치를 사용할 수 없어요. 출발 지역을 골라 주세요.</p>
+      <button type="button" data-region="seoul">서울</button>
+      <button type="button" data-region="gyeonggi">경기</button>
+    </section>
+
+    <section id="results" aria-label="추천 코스"></section>
+
+    <section id="empty" hidden>
+      <p>조건에 맞는 코스가 없어요.</p>
+    </section>
+    <button type="button" id="relax" hidden>조건 완화하기</button>
+
+    <section id="map-panel" hidden aria-label="코스 미리보기">
+      <h2 id="map-title"></h2>
+      <div id="map"></div>
+    </section>
+
+    <section id="confirm-panel" hidden aria-label="코스 확정"></section>
+  </main>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>

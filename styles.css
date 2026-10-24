@@ -1,0 +1,27 @@
+:root { --green: #2e7d32; --line: #d7ddd7; --bg: #f6f8f6; --warn: #b71c1c; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, "Malgun Gothic", sans-serif; background: var(--bg); color: #1b1f1b; line-height: 1.5; }
+main { max-width: 640px; margin: 0 auto; padding: 16px; }
+h1 { margin: 8px 0 0; font-size: 1.5rem; }
+.lead { margin: 4px 0 16px; color: #4a554a; }
+.group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.label { width: 100%; font-size: .85rem; color: #4a554a; }
+button { min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 22px; background: #fff; font: inherit; cursor: pointer; }
+button.chip[aria-pressed="true"] { background: var(--green); color: #fff; border-color: var(--green); }
+button.primary { background: var(--green); color: #fff; border-color: var(--green); }
+button.big { width: 100%; margin-top: 4px; border-radius: 8px; }
+#status { min-height: 1.5em; color: #4a554a; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 12px 0; }
+.card h3 { margin: 0 0 4px; font-size: 1.1rem; }
+.card p { margin: 2px 0; }
+.card .meta { font-weight: 600; }
+.card .sample { font-size: .8rem; color: #6b756b; }
+.badge-medium { font-size: .85rem; color: #8a5a00; }
+.weather.warn { color: var(--warn); font-weight: 600; }
+.actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.actions button { flex: 1 1 140px; }
+#map { width: 100%; min-height: 220px; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+#map svg { width: 100%; height: auto; display: block; }
+.map-note { padding: 8px 12px; font-size: .85rem; color: #6b756b; }
+#confirm-panel, #region-prompt, #empty { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 12px 0; }
+#confirm-panel a.primary { display: flex; align-items: center; justify-content: center; min-height: 44px; margin-top: 8px; border-radius: 8px; background: var(--green); color: #fff; text-decoration: none; }
