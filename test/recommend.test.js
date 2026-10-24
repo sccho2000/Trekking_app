@@ -65,7 +65,7 @@ test('지역 선택에서는 distanceKm이 null', () => {
 
 test('내 위치인데 위치가 없으면 needsRegion', () => {
   const r = recommend({ courses: [half('a')], time: 'half', origin: 'here', position: null });
-  assert.deepEqual(r, { cards: [], needsRegion: true, canRelax: false });
+  assert.deepEqual(r, { cards: [], needsRegion: true, canRelax: false, noNearby: false });
 });
 
 test('후보가 많아도 카드는 3개, canRelax false', () => {
@@ -94,4 +94,20 @@ test('relaxTime은 시간 필터를 무시하고 canRelax를 끈다', () => {
 test('reason은 비어 있지 않고 난이도를 포함한다', () => {
   const r = recommend({ courses: [half('a')], time: 'half', origin: 'seoul', position: null });
   assert.ok(r.cards[0].reason.includes('쉬움'));
+});
+
+test('내 위치에서 너무 먼 코스만 있으면 noNearby', () => {
+  const far = half('far', { start: { lat: 35.1, lng: 129.0, name: '부산' } });
+  const r = recommend({ courses: [far], time: 'half', origin: 'here', position: at(37.5, 127) });
+  assert.deepEqual(r.cards, []);
+  assert.equal(r.noNearby, true);
+});
+
+test('MAX_NEARBY_KM 안의 코스는 나오고, 지역 선택이나 코스 자체가 없을 때는 noNearby가 아니다', () => {
+  const near = half('near', { start: { lat: 37.52, lng: 127, name: 'n' } });
+  const ok = recommend({ courses: [near], time: 'half', origin: 'here', position: at(37.5, 127) });
+  assert.equal(ok.cards.length, 1);
+  assert.equal(ok.noNearby, false);
+  assert.equal(recommend({ courses: [], time: 'half', origin: 'here', position: at(37.5, 127) }).noNearby, false);
+  assert.equal(recommend({ courses: [half('a')], time: 'half', origin: 'seoul', position: null }).noNearby, false);
 });

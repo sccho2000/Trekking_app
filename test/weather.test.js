@@ -49,3 +49,13 @@ test('fetchWeather는 응답이 없어도 timeout 뒤에 null', async () => {
   const never = () => new Promise(() => {});
   assert.equal(await fetchWeather({ lat: 1, lng: 1 }, never, 30), null);
 });
+
+test('fetchWeather는 좌표를 소수 둘째 자리로 줄여 보낸다', async () => {
+  let url;
+  await fetchWeather({ lat: 37.56789, lng: 126.97812 }, async (u) => { url = String(u); return { ok: false }; });
+  assert.ok(url.includes('latitude=37.57') && url.includes('longitude=126.98'), url);
+});
+
+test('describeWeather 문구에 출발 지역 기준임이 드러난다', () => {
+  assert.ok(describeWeather({ rainProb: 10, tMax: 20, tMin: 10 }).text.includes('출발 지역'));
+});

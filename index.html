@@ -10,6 +10,7 @@
   <main>
     <h1>오늘 어디 걸을까</h1>
     <p class="lead">서울·경기 걷기 코스를 세 가지만 물어보고 골라 드려요.</p>
+    <button type="button" id="fav-toggle" class="chip" aria-pressed="false">★ 즐겨찾기 (0)</button>
 
     <section id="conditions" aria-label="조건 선택">
       <div class="group" data-group="time">
@@ -43,13 +44,14 @@
     <section id="results" aria-label="추천 코스"></section>
 
     <section id="empty" hidden>
-      <p>조건에 맞는 코스가 없어요.</p>
+      <p id="empty-text">조건에 맞는 코스가 없어요.</p>
     </section>
     <button type="button" id="relax" hidden>조건 완화하기</button>
 
     <section id="map-panel" hidden aria-label="코스 미리보기">
       <h2 id="map-title"></h2>
       <div id="map"></div>
+      <button type="button" id="open-naver">네이버 지도 앱·웹에서 열기</button>
     </section>
 
     <section id="confirm-panel" hidden aria-label="코스 확정"></section>

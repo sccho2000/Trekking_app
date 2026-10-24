@@ -8,6 +8,7 @@ export const REGION_CENTER = {
 const ORIGIN_REGION = { seoul: '서울', gyeonggi: '경기' };
 const BUCKET_CENTER_MIN = { short: 120, half: 210, full: 330 };
 const MAX_CARDS = 3;
+export const MAX_NEARBY_KM = 60;
 
 export function durationBucket(min) {
   if (min <= 150) return 'short';
@@ -30,16 +31,19 @@ function buildReason(course, distanceKm) {
 }
 
 export function recommend({ courses, time, origin, position, relaxTime = false }) {
-  if (origin === 'here' && !position) return { cards: [], needsRegion: true, canRelax: false };
+  if (origin === 'here' && !position) return { cards: [], needsRegion: true, canRelax: false, noNearby: false };
 
   const region = ORIGIN_REGION[origin];
-  const candidates = courses
+  const inScope = courses
     .filter((c) => !region || c.region === region)
     .filter((c) => relaxTime || durationBucket(c.durationMin) === time)
     .map((course) => ({
       course,
       distanceKm: origin === 'here' ? haversineKm(position, course.start) : null,
     }));
+  // 내 위치 기준에서는 너무 먼 코스를 추천하지 않는다.
+  const candidates = origin === 'here' ? inScope.filter((c) => c.distanceKm <= MAX_NEARBY_KM) : inScope;
+  const noNearby = origin === 'here' && inScope.length > 0 && candidates.length === 0;
 
   const rank = (c) => (c.course.difficulty === '쉬움' ? 0 : 1);
   const secondary = (c) =>
@@ -57,5 +61,5 @@ export function recommend({ courses, time, origin, position, relaxTime = false }
     mediumDifficulty: course.difficulty === '보통',
     reason: buildReason(course, distanceKm),
   }));
-  return { cards, needsRegion: false, canRelax: cards.length < MAX_CARDS && !relaxTime };
+  return { cards, needsRegion: false, canRelax: cards.length < MAX_CARDS && !relaxTime, noNearby };
 }

@@ -6,12 +6,15 @@ export function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (ch) => ESCAPES[ch]);
 }
 
-export function cardHtml(card, { showTransit, weather }) {
+export function cardHtml(card, { showTransit, weather, favorite = false }) {
   const c = card.course;
   const id = escapeHtml(c.id);
   return `
 <article class="card">
-  <h3>${escapeHtml(c.name)}</h3>
+  <div class="card-head">
+    <h3>${escapeHtml(c.name)}</h3>
+    <button type="button" class="fav" data-action="favorite" data-id="${id}" aria-pressed="${favorite}" aria-label="즐겨찾기">${favorite ? '★' : '☆'}</button>
+  </div>
   <p class="meta">${c.distanceKm}km · ${formatDuration(c.durationMin)} · ${escapeHtml(c.difficulty)}</p>
   ${card.mediumDifficulty ? '<p class="badge-medium">쉬움 코스가 부족해 보통 코스도 함께 보여 드려요</p>' : ''}
   <p class="reason">${escapeHtml(card.reason)}</p>

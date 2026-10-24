@@ -13,9 +13,10 @@ export function parseForecast(json) {
 }
 
 export async function fetchWeather(point, fetchFn = fetch, timeoutMs = 5000) {
+  // 날씨에는 대략적인 위치면 충분하므로 소수 둘째 자리(약 1km)로 줄여 보낸다.
   const url =
     'https://api.open-meteo.com/v1/forecast' +
-    `?latitude=${point.lat}&longitude=${point.lng}` +
+    `?latitude=${point.lat.toFixed(2)}&longitude=${point.lng.toFixed(2)}` +
     '&daily=precipitation_probability_max,temperature_2m_max,temperature_2m_min' +
     '&timezone=Asia%2FSeoul&forecast_days=1';
   let timer;
@@ -34,7 +35,7 @@ export async function fetchWeather(point, fetchFn = fetch, timeoutMs = 5000) {
 
 export function describeWeather(w) {
   if (!w) return { text: '날씨 정보를 불러오지 못했어요', warn: false };
-  const base = `강수확률 ${w.rainProb}% · ${Math.round(w.tMin)}~${Math.round(w.tMax)}°`;
+  const base = `출발 지역 날씨 · 강수확률 ${w.rainProb}% · ${Math.round(w.tMin)}~${Math.round(w.tMax)}°`;
   return w.rainProb >= RAIN_WARN_PCT
     ? { text: `오늘 비 예보 · ${base}`, warn: true }
     : { text: base, warn: false };

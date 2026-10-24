@@ -48,3 +48,11 @@ test('버튼의 data-action, data-id', () => {
   assert.ok(html.includes('data-action="select" data-id="seoul-01"'));
   assert.ok(html.includes('지도에서 보기') && html.includes('이 코스로 정하기'));
 });
+
+test('즐겨찾기 버튼: data-action, data-id, aria-pressed', () => {
+  const off = cardHtml(card({}, { id: 'seoul-01' }), ctx({ favorite: false }));
+  assert.ok(off.includes('data-action="favorite" data-id="seoul-01"'));
+  assert.ok(off.includes('aria-pressed="false"'));
+  const on = cardHtml(card({}, { id: 'seoul-01' }), ctx({ favorite: true }));
+  assert.ok(on.includes('aria-pressed="true"'));
+});

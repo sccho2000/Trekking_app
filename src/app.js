@@ -1,17 +1,40 @@
 import { COURSES } from '../data/courses.js';
+import { NAVER_MAP_CLIENT_ID } from '../config.js';
 import { validCourses } from './courses.js';
-import { recommend, REGION_CENTER } from './recommend.js';
+import { recommend, REGION_CENTER, MAX_NEARBY_KM } from './recommend.js';
 import { fetchWeather, describeWeather } from './weather.js';
 import { cardHtml, escapeHtml } from './render.js';
 import { buildDirectionsLinks, buildCourseMapLinks } from './links.js';
-import { showRoute } from './mapview.js';
+import { loadNaverMap, showRoute } from './mapview.js';
 import { getPosition } from './geolocate.js';
 import { createSequencer } from './latest.js';
 import { openDirections } from './openLinks.js';
+import { createFavorites, favoriteCards } from './favorites.js';
 
 const courses = validCourses(COURSES);
 const $ = (sel) => document.querySelector(sel);
-const state = { time: 'half', origin: 'here', move: 'transit', position: null, cards: [], weather: null };
+const state = {
+  time: 'half', origin: 'here', move: 'transit',
+  position: null, cards: [], canRelax: false, weather: null, favoritesView: false, previewCourse: null,
+};
+const searches = createSequencer();
+const confirms = createSequencer();
+const naverReady = loadNaverMap(NAVER_MAP_CLIENT_ID);
+
+let storage = null;
+try {
+  storage = window.localStorage;
+} catch {
+  // 저장소를 못 쓰면 이번 방문 동안만 즐겨찾기가 유지된다.
+}
+const favorites = createFavorites(storage);
+
+const openEnv = () => ({ ua: navigator.userAgent, location: window.location, doc: document, win: window });
+const EMPTY_DEFAULT = '조건에 맞는 코스가 없어요.';
+
+function setStatus(text) {
+  $('#status').textContent = text;
+}
 
 function syncChips() {
   document.querySelectorAll('.group').forEach((g) => {
@@ -21,28 +44,42 @@ function syncChips() {
   });
 }
 
-const searches = createSequencer();
-const confirms = createSequencer();
+function syncFavoriteButton() {
+  const btn = $('#fav-toggle');
+  btn.textContent = `★ 즐겨찾기 (${favorites.list().length})`;
+  btn.setAttribute('aria-pressed', String(state.favoritesView));
+}
+
+function renderCards(emptyText = EMPTY_DEFAULT) {
+  const showTransit = state.move === 'transit';
+  const weather = state.favoritesView ? null : state.weather;
+  $('#results').innerHTML = state.cards
+    .map((card) => cardHtml(card, { showTransit, weather, favorite: favorites.has(card.course.id) }))
+    .join('');
+  $('#empty-text').textContent = emptyText;
+  $('#empty').hidden = state.cards.length > 0;
+  $('#relax').hidden = state.favoritesView || !state.canRelax;
+}
+
+function hidePanels() {
+  $('#map-panel').hidden = true;
+  $('#confirm-panel').hidden = true;
+  $('#region-prompt').hidden = true;
+}
 
 function weatherPoint({ origin, position }) {
   if (position) return position;
   return origin === 'gyeonggi' ? REGION_CENTER.경기 : REGION_CENTER.서울;
 }
 
-function showResults({ cards, canRelax }, { move, weather }) {
-  state.cards = cards;
-  const showTransit = move === 'transit';
-  $('#results').innerHTML = cards.map((card) => cardHtml(card, { showTransit, weather })).join('');
-  $('#empty').hidden = cards.length > 0;
-  $('#relax').hidden = !canRelax;
-}
-
 async function search({ relaxTime = false } = {}) {
   const token = searches.next();
-  const cond = { time: state.time, origin: state.origin, move: state.move };
+  const cond = { time: state.time, origin: state.origin };
+  state.favoritesView = false;
+  syncFavoriteButton();
+  hidePanels();
   $('#go').disabled = true;
-  $('#region-prompt').hidden = true;
-  $('#status').textContent = '코스를 찾는 중…';
+  setStatus('코스를 찾는 중…');
   try {
     const position = cond.origin === 'here' ? await getPosition() : null;
     if (!searches.isCurrent(token)) return;
@@ -50,53 +87,54 @@ async function search({ relaxTime = false } = {}) {
 
     const result = recommend({ courses, time: cond.time, origin: cond.origin, position, relaxTime });
     if (result.needsRegion) {
-      $('#status').textContent = '';
-      $('#results').innerHTML = '';
+      setStatus('');
+      state.cards = [];
+      renderCards();
       $('#empty').hidden = true;
-      $('#relax').hidden = true;
       $('#region-prompt').hidden = false;
       return;
     }
     const weather = describeWeather(await fetchWeather(weatherPoint({ origin: cond.origin, position })));
     if (!searches.isCurrent(token)) return;
-    $('#status').textContent = '';
-    showResults(result, { move: cond.move, weather });
+    setStatus('');
+    state.weather = weather;
+    state.cards = result.cards;
+    state.canRelax = result.canRelax;
+    renderCards(
+      result.noNearby
+        ? `내 위치에서 ${MAX_NEARBY_KM}km 안에 맞는 코스가 없어요. 출발 지역을 서울이나 경기로 골라 보세요.`
+        : EMPTY_DEFAULT,
+    );
+  } catch {
+    if (searches.isCurrent(token)) setStatus('문제가 생겼어요. 잠시 뒤에 다시 시도해 주세요.');
   } finally {
     if (searches.isCurrent(token)) $('#go').disabled = false;
   }
 }
 
-document.querySelectorAll('.group').forEach((g) => {
-  g.addEventListener('click', (e) => {
-    const chip = e.target.closest('.chip');
-    if (!chip) return;
-    state[g.dataset.group] = chip.dataset.value;
-    syncChips();
-  });
-});
-$('#go').addEventListener('click', () => search());
-$('#relax').addEventListener('click', () => search({ relaxTime: true }));
-$('#region-prompt').addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-region]');
-  if (!btn) return;
-  state.origin = btn.dataset.region;
-  syncChips();
-  search();
-});
-
+function showFavorites() {
+  searches.next(); // 진행 중인 검색 결과가 즐겨찾기 화면을 덮지 않게 한다.
+  $('#go').disabled = false;
+  state.favoritesView = true;
+  hidePanels();
+  setStatus('');
+  state.cards = favoriteCards(courses, favorites.list(), state.position);
+  renderCards('아직 즐겨찾기한 코스가 없어요. 카드의 ☆ 버튼으로 추가해 보세요.');
+  syncFavoriteButton();
+}
 
 function findCard(id) {
   return state.cards.find((c) => c.course.id === id);
 }
 
-function previewCourse(card) {
-  // 클릭 직후 동기적으로 열어야 팝업 차단에 걸리지 않는다.
-  openDirections(buildCourseMapLinks(card.course), {
-    ua: navigator.userAgent, location: window.location, doc: document, win: window,
-  });
+async function previewCourse(card) {
+  state.previewCourse = card.course;
   $('#map-title').textContent = card.course.name;
   $('#map-panel').hidden = false;
-  showRoute($('#map'), card.course);
+  $('#map').innerHTML = '<p class="map-note">지도를 불러오는 중…</p>';
+  const naver = await naverReady;
+  if (state.previewCourse !== card.course) return;
+  showRoute($('#map'), card.course, naver);
   $('#map-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
@@ -120,17 +158,52 @@ async function confirmCourse(card) {
     `<a class="primary" id="open-directions" href="${escapeHtml(links.web)}">네이버 지도에서 길찾기</a>`;
   $('#open-directions').addEventListener('click', (e) => {
     e.preventDefault();
-    openDirections(links, { ua: navigator.userAgent, location: window.location, doc: document, win: window });
+    openDirections(links, openEnv());
   });
   $('#confirm-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+function toggleFavorite(card) {
+  favorites.toggle(card.course.id);
+  if (state.favoritesView) {
+    state.cards = favoriteCards(courses, favorites.list(), state.position);
+    renderCards('아직 즐겨찾기한 코스가 없어요. 카드의 ☆ 버튼으로 추가해 보세요.');
+  } else {
+    renderCards();
+  }
+  syncFavoriteButton();
+}
+
+document.querySelectorAll('.group').forEach((g) => {
+  g.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    state[g.dataset.group] = chip.dataset.value;
+    syncChips();
+    if (g.dataset.group === 'move' && state.cards.length > 0) renderCards(); // 대중교통 문구를 바로 반영
+  });
+});
+$('#go').addEventListener('click', () => search());
+$('#relax').addEventListener('click', () => search({ relaxTime: true }));
+$('#fav-toggle').addEventListener('click', () => (state.favoritesView ? search() : showFavorites()));
+$('#region-prompt').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-region]');
+  if (!btn) return;
+  state.origin = btn.dataset.region;
+  syncChips();
+  search();
+});
+$('#open-naver').addEventListener('click', () => {
+  if (state.previewCourse) openDirections(buildCourseMapLinks(state.previewCourse), openEnv());
+});
 $('#results').addEventListener('click', (e) => {
   const btn = e.target.closest('[data-action]');
   const card = btn && findCard(btn.dataset.id);
   if (!card) return;
-  if (btn.dataset.action === 'preview') previewCourse(card);
+  if (btn.dataset.action === 'favorite') toggleFavorite(card);
+  else if (btn.dataset.action === 'preview') previewCourse(card);
   else confirmCourse(card);
 });
 
 syncChips();
+syncFavoriteButton();
