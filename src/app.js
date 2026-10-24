@@ -6,6 +6,9 @@ import { cardHtml, escapeHtml } from './render.js';
 import { buildDirectionsLinks } from './links.js';
 import { loadNaverMap, showRoute } from './mapview.js';
 import { NAVER_MAP_CLIENT_ID } from '../config.js';
+import { getPosition } from './geolocate.js';
+import { createSequencer } from './latest.js';
+import { openDirections } from './openLinks.js';
 
 const courses = validCourses(COURSES);
 const $ = (sel) => document.querySelector(sel);
@@ -19,47 +22,49 @@ function syncChips() {
   });
 }
 
-function getPosition(timeoutMs = 8000) {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) return resolve(null);
-    navigator.geolocation.getCurrentPosition(
-      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => resolve(null),
-      { timeout: timeoutMs, maximumAge: 60000 },
-    );
-  });
+const searches = createSequencer();
+const confirms = createSequencer();
+
+function weatherPoint({ origin, position }) {
+  if (position) return position;
+  return origin === 'gyeonggi' ? REGION_CENTER.경기 : REGION_CENTER.서울;
 }
 
-function weatherPoint() {
-  if (state.position) return state.position;
-  return state.origin === 'gyeonggi' ? REGION_CENTER.경기 : REGION_CENTER.서울;
-}
-
-function showResults({ cards, canRelax }) {
+function showResults({ cards, canRelax }, { move, weather }) {
   state.cards = cards;
-  const showTransit = state.move === 'transit';
-  $('#results').innerHTML = cards.map((card) => cardHtml(card, { showTransit, weather: state.weather })).join('');
+  const showTransit = move === 'transit';
+  $('#results').innerHTML = cards.map((card) => cardHtml(card, { showTransit, weather })).join('');
   $('#empty').hidden = cards.length > 0;
   $('#relax').hidden = !canRelax;
 }
 
 async function search({ relaxTime = false } = {}) {
+  const token = searches.next();
+  const cond = { time: state.time, origin: state.origin, move: state.move };
+  $('#go').disabled = true;
   $('#region-prompt').hidden = true;
   $('#status').textContent = '코스를 찾는 중…';
-  state.position = state.origin === 'here' ? await getPosition() : null;
+  try {
+    const position = cond.origin === 'here' ? await getPosition() : null;
+    if (!searches.isCurrent(token)) return;
+    state.position = position;
 
-  const result = recommend({ courses, time: state.time, origin: state.origin, position: state.position, relaxTime });
-  if (result.needsRegion) {
+    const result = recommend({ courses, time: cond.time, origin: cond.origin, position, relaxTime });
+    if (result.needsRegion) {
+      $('#status').textContent = '';
+      $('#results').innerHTML = '';
+      $('#empty').hidden = true;
+      $('#relax').hidden = true;
+      $('#region-prompt').hidden = false;
+      return;
+    }
+    const weather = describeWeather(await fetchWeather(weatherPoint({ origin: cond.origin, position })));
+    if (!searches.isCurrent(token)) return;
     $('#status').textContent = '';
-    $('#results').innerHTML = '';
-    $('#empty').hidden = true;
-    $('#relax').hidden = true;
-    $('#region-prompt').hidden = false;
-    return;
+    showResults(result, { move: cond.move, weather });
+  } finally {
+    if (searches.isCurrent(token)) $('#go').disabled = false;
   }
-  state.weather = describeWeather(await fetchWeather(weatherPoint()));
-  $('#status').textContent = '';
-  showResults(result);
 }
 
 document.querySelectorAll('.group').forEach((g) => {
@@ -81,7 +86,6 @@ $('#region-prompt').addEventListener('click', (e) => {
 });
 
 const naverReady = loadNaverMap(NAVER_MAP_CLIENT_ID);
-const APP_OPEN_WAIT_MS = 1500;
 
 function findCard(id) {
   return state.cards.find((c) => c.course.id === id);
@@ -96,9 +100,12 @@ async function previewCourse(card) {
 
 async function confirmCourse(card) {
   const course = card.course;
+  const token = confirms.next();
   $('#confirm-panel').hidden = false;
   $('#confirm-panel').innerHTML = '<p>현재 위치를 확인하는 중…</p>';
-  if (!state.position) state.position = await getPosition();
+  const position = state.position ?? (await getPosition());
+  if (!confirms.isCurrent(token)) return;
+  state.position = position;
   const links = buildDirectionsLinks({
     from: state.position,
     to: { lat: course.start.lat, lng: course.start.lng, name: course.start.name },
@@ -111,10 +118,7 @@ async function confirmCourse(card) {
     `<a class="primary" id="open-directions" href="${escapeHtml(links.web)}">네이버 지도에서 길찾기</a>`;
   $('#open-directions').addEventListener('click', (e) => {
     e.preventDefault();
-    window.location.href = links.app;
-    setTimeout(() => {
-      if (!document.hidden) window.open(links.web, '_blank', 'noopener');
-    }, APP_OPEN_WAIT_MS);
+    openDirections(links, { ua: navigator.userAgent, location: window.location, doc: document, win: window });
   });
   $('#confirm-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }

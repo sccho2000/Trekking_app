@@ -1,7 +1,7 @@
 const fmt = (n) => Math.round(n * 10) / 10;
 
 export function routeToSvg(path, { width = 320, height = 200, pad = 16 } = {}) {
-  const pts = (path || []).filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+  const pts = (path || []).filter((p) => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]));
   if (pts.length === 0) return '';
 
   const lats = pts.map((p) => p[0]);

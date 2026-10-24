@@ -74,3 +74,33 @@ test('샘플 데이터: 시간 구간 3 × 지역 2 조합마다 최소 1개, �
   }
   assert.ok(COURSES.some((c) => bucket(c.durationMin) === 'full' && c.difficulty === '보통'));
 });
+
+test('id가 없거나 비어 있으면 무효', () => {
+  const c = makeCourse();
+  delete c.id;
+  assert.equal(isValidCourse(c), false);
+  assert.equal(isValidCourse(makeCourse({ id: '' })), false);
+});
+
+test('start.name, transit이 문자열이 아니면 무효', () => {
+  assert.equal(isValidCourse(makeCourse({ start: { lat: 37.5, lng: 127 } })), false);
+  assert.equal(isValidCourse(makeCourse({ transit: undefined })), false);
+});
+
+test('durationMin은 양의 정수, distanceKm은 양수여야 한다', () => {
+  assert.equal(isValidCourse(makeCourse({ durationMin: -30 })), false);
+  assert.equal(isValidCourse(makeCourse({ durationMin: 90.5 })), false);
+  assert.equal(isValidCourse(makeCourse({ distanceKm: 0 })), false);
+});
+
+test('path의 각 점은 숫자 2개짜리 배열이어야 한다', () => {
+  assert.equal(isValidCourse(makeCourse({ path: [null] })), false);
+  assert.equal(isValidCourse(makeCourse({ path: [{ lat: 1, lng: 2 }] })), false);
+  assert.equal(isValidCourse(makeCourse({ path: [[1, 'x']] })), false);
+});
+
+test('validCourses는 id가 중복된 코스를 첫 번째만 남긴다', () => {
+  const list = validCourses([makeCourse({ id: 'a' }), makeCourse({ id: 'a', name: '(샘플) 두번째' })]);
+  assert.equal(list.length, 1);
+  assert.equal(list[0].name, '(샘플) 테스트 코스');
+});

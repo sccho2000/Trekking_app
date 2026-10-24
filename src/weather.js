@@ -12,18 +12,23 @@ export function parseForecast(json) {
   return { rainProb, tMax, tMin };
 }
 
-export async function fetchWeather(point, fetchFn = fetch) {
+export async function fetchWeather(point, fetchFn = fetch, timeoutMs = 5000) {
   const url =
     'https://api.open-meteo.com/v1/forecast' +
     `?latitude=${point.lat}&longitude=${point.lng}` +
     '&daily=precipitation_probability_max,temperature_2m_max,temperature_2m_min' +
     '&timezone=Asia%2FSeoul&forecast_days=1';
-  try {
+  let timer;
+  const timeout = new Promise((resolve) => { timer = setTimeout(() => resolve(null), timeoutMs); });
+  const request = (async () => {
     const res = await fetchFn(url);
     if (!res.ok) return null;
     return parseForecast(await res.json());
-  } catch {
-    return null;
+  })().catch(() => null);
+  try {
+    return await Promise.race([request, timeout]);
+  } finally {
+    clearTimeout(timer);
   }
 }
 

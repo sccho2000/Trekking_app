@@ -31,3 +31,8 @@ test('한 점, 동일 좌표 경로에서도 NaN/Infinity가 없다', () => {
     assert.ok(!/NaN|Infinity/.test(svg), svg);
   }
 });
+
+test('배열이 아닌 점이 섞여 있어도 예외 없이 나머지로 그린다', () => {
+  const svg = routeToSvg([null, [37.5, 127], 'x', [37.51, 127.01]]);
+  assert.equal(pointsOf(svg).length, 2);
+});

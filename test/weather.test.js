@@ -44,3 +44,8 @@ test('describeWeather', () => {
   assert.ok(wet.text.includes('비 예보') && wet.text.includes('60%'));
   assert.equal(describeWeather({ rainProb: 59, tMax: 20, tMin: 10 }).warn, false);
 });
+
+test('fetchWeather는 응답이 없어도 timeout 뒤에 null', async () => {
+  const never = () => new Promise(() => {});
+  assert.equal(await fetchWeather({ lat: 1, lng: 1 }, never, 30), null);
+});
