@@ -2,7 +2,10 @@ import { COURSES } from '../data/courses.js';
 import { validCourses } from './courses.js';
 import { recommend, REGION_CENTER } from './recommend.js';
 import { fetchWeather, describeWeather } from './weather.js';
-import { cardHtml } from './render.js';
+import { cardHtml, escapeHtml } from './render.js';
+import { buildDirectionsLinks } from './links.js';
+import { loadNaverMap, showRoute } from './mapview.js';
+import { NAVER_MAP_CLIENT_ID } from '../config.js';
 
 const courses = validCourses(COURSES);
 const $ = (sel) => document.querySelector(sel);
@@ -75,6 +78,53 @@ $('#region-prompt').addEventListener('click', (e) => {
   state.origin = btn.dataset.region;
   syncChips();
   search();
+});
+
+const naverReady = loadNaverMap(NAVER_MAP_CLIENT_ID);
+const APP_OPEN_WAIT_MS = 1500;
+
+function findCard(id) {
+  return state.cards.find((c) => c.course.id === id);
+}
+
+async function previewCourse(card) {
+  $('#map-title').textContent = card.course.name;
+  $('#map-panel').hidden = false;
+  showRoute($('#map'), card.course, await naverReady);
+  $('#map-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function confirmCourse(card) {
+  const course = card.course;
+  $('#confirm-panel').hidden = false;
+  $('#confirm-panel').innerHTML = '<p>현재 위치를 확인하는 중…</p>';
+  if (!state.position) state.position = await getPosition();
+  const links = buildDirectionsLinks({
+    from: state.position,
+    to: { lat: course.start.lat, lng: course.start.lng, name: course.start.name },
+    mode: state.move === 'car' ? 'car' : 'transit',
+  });
+  $('#confirm-panel').innerHTML =
+    `<h2>${escapeHtml(course.name)}</h2>` +
+    '<p>이 코스로 정했어요. 현재 위치에서 출발점까지 가는 길을 네이버 지도에서 열어 보세요.</p>' +
+    (state.position ? '' : '<p class="map-note">현재 위치를 알 수 없어 도착지만 지정했어요. 지도 앱에서 출발지를 현재 위치로 골라 주세요.</p>') +
+    `<a class="primary" id="open-directions" href="${escapeHtml(links.web)}">네이버 지도에서 길찾기</a>`;
+  $('#open-directions').addEventListener('click', (e) => {
+    e.preventDefault();
+    window.location.href = links.app;
+    setTimeout(() => {
+      if (!document.hidden) window.open(links.web, '_blank', 'noopener');
+    }, APP_OPEN_WAIT_MS);
+  });
+  $('#confirm-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+$('#results').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  const card = btn && findCard(btn.dataset.id);
+  if (!card) return;
+  if (btn.dataset.action === 'preview') previewCourse(card);
+  else confirmCourse(card);
 });
 
 syncChips();
