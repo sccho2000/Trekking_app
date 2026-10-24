@@ -1,4 +1,5 @@
 import { COURSES } from '../data/courses.js';
+import { OSM_COURSES } from '../data/courses-osm.js';
 import { NAVER_MAP_CLIENT_ID } from '../config.js';
 import { validCourses } from './courses.js';
 import { recommend, REGION_CENTER, MAX_NEARBY_KM } from './recommend.js';
@@ -13,10 +14,10 @@ import { createFavorites, favoriteCards } from './favorites.js';
 import { paginate } from './paginate.js';
 import { haversineKm } from './geo.js';
 
-const courses = validCourses(COURSES);
+const courses = validCourses([...COURSES, ...OSM_COURSES]);
 const $ = (sel) => document.querySelector(sel);
 const state = {
-  time: 'half', origin: 'here', move: 'transit',
+  time: 'any', origin: 'here', move: 'transit',
   position: null, allCards: [], page: 1, canRelax: false, weather: null, favoritesView: false,
 };
 const searches = createSequencer();

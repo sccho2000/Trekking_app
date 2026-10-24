@@ -6,7 +6,7 @@ export const REGION_CENTER = {
 };
 
 const ORIGIN_REGION = { seoul: '서울', gyeonggi: '경기' };
-const BUCKET_CENTER_MIN = { short: 120, half: 210, full: 330 };
+const BUCKET_CENTER_MIN = { any: 0, short: 120, half: 210, full: 330 };
 const MIN_RESULTS = 3; // 이보다 적으면 '조건 완화하기'를 제안한다
 export const MAX_NEARBY_KM = 100;
 
@@ -36,7 +36,7 @@ export function recommend({ courses, time, origin, position, relaxTime = false }
   const region = ORIGIN_REGION[origin];
   const inScope = courses
     .filter((c) => !region || c.region === region)
-    .filter((c) => relaxTime || durationBucket(c.durationMin) === time)
+    .filter((c) => relaxTime || time === 'any' || durationBucket(c.durationMin) === time)
     .map((course) => ({
       course,
       distanceKm: origin === 'here' ? haversineKm(position, course.start) : null,

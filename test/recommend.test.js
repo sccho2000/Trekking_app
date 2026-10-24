@@ -120,3 +120,23 @@ test('MAX_NEARBY_KM 안의 코스는 나오고, 지역 선택이나 코스 자�
   assert.equal(recommend({ courses: [], time: 'half', origin: 'here', position: at(37.5, 127) }).noNearby, false);
   assert.equal(recommend({ courses: [half('a')], time: 'half', origin: 'seoul', position: null }).noNearby, false);
 });
+
+test("time이 'any'면 시간 구간과 관계없이 모두 나온다", () => {
+  const courses = [
+    makeCourse({ id: 's', durationMin: 60 }),
+    makeCourse({ id: 'h', durationMin: 200 }),
+    makeCourse({ id: 'f', durationMin: 400 }),
+  ];
+  const r = recommend({ courses, time: 'any', origin: 'seoul', position: null });
+  assert.equal(r.cards.length, 3);
+  assert.equal(r.canRelax, false);
+});
+
+test("time이 'any'이고 내 위치면 가까운 순", () => {
+  const courses = [
+    makeCourse({ id: 'far', durationMin: 60, start: { lat: 37.6, lng: 127, name: 'f' } }),
+    makeCourse({ id: 'near', durationMin: 400, start: { lat: 37.51, lng: 127, name: 'n' } }),
+  ];
+  const r = recommend({ courses, time: 'any', origin: 'here', position: at(37.5, 127) });
+  assert.deepEqual(r.cards.map((c) => c.course.id), ['near', 'far']);
+});

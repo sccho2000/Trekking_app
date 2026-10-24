@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { isValidCourse, validCourses } from '../src/courses.js';
 import { COURSES } from '../data/courses.js';
+import { OSM_COURSES } from '../data/courses-osm.js';
 import { makeCourse } from './fixtures.js';
 
 test('유효한 코스는 통과한다', () => {
@@ -95,4 +96,38 @@ test('validCourses는 id가 중복된 코스를 첫 번째만 남긴다', () => 
   const list = validCourses([makeCourse({ id: 'a' }), makeCourse({ id: 'a', name: '(샘플) 두번째' })]);
   assert.equal(list.length, 1);
   assert.equal(list[0].name, '(샘플) 테스트 코스');
+});
+
+// ---- 두루누비 + 오픈스트리트맵을 합친 전체 데이터 ----
+const ALL = [...COURSES, ...OSM_COURSES];
+const bucketOf = (m) => (m <= 150 ? 'short' : m < 270 ? 'half' : 'full');
+
+test('합친 데이터: 모두 유효, id 중복 없음, 샘플 아님, 50개 이상', () => {
+  assert.ok(ALL.length >= 50, String(ALL.length));
+  assert.equal(new Set(ALL.map((c) => c.id)).size, ALL.length);
+  for (const c of ALL) {
+    assert.equal(isValidCourse(c), true, c.id);
+    assert.equal(c.isSample, false, c.id);
+  }
+});
+
+test('오픈스트리트맵 코스: 출처 표기, 경로 2~60점, 시작·끝 일치, 수도권 범위 안', () => {
+  assert.ok(OSM_COURSES.length >= 30);
+  for (const c of OSM_COURSES) {
+    assert.ok(c.source.includes('OpenStreetMap'), c.id);
+    assert.ok(c.path.length >= 2 && c.path.length <= 60, c.id);
+    assert.deepEqual(c.path[0], [c.start.lat, c.start.lng], c.id);
+    assert.deepEqual(c.path[c.path.length - 1], [c.end.lat, c.end.lng], c.id);
+    for (const [lat, lng] of c.path) {
+      assert.ok(lat >= BOUNDS.lat[0] && lat <= BOUNDS.lat[1] && lng >= BOUNDS.lng[0] && lng <= BOUNDS.lng[1], `${c.id} ${lat},${lng}`);
+    }
+  }
+});
+
+test('합친 데이터: 시간 구간 3 × 지역 2 조합마다 코스가 1개 이상', () => {
+  for (const region of ['서울', '경기']) {
+    for (const b of ['short', 'half', 'full']) {
+      assert.ok(ALL.some((c) => c.region === region && bucketOf(c.durationMin) === b), `${region} ${b}`);
+    }
+  }
 });

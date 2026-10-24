@@ -16,6 +16,7 @@
       <section id="conditions" aria-label="조건 선택">
         <div class="group" data-group="time">
           <span class="label">시간</span>
+          <button type="button" class="chip" data-value="any">상관없음</button>
           <button type="button" class="chip" data-value="short">2시간 안팎</button>
           <button type="button" class="chip" data-value="half">반나절</button>
           <button type="button" class="chip" data-value="full">하루 종일</button>
@@ -54,6 +55,10 @@
         <p id="empty-text">조건에 맞는 코스가 없어요.</p>
       </section>
       <button type="button" id="relax" hidden>조건 완화하기</button>
+
+      <footer class="attribution">
+        <p>코스 데이터: 한국관광공사 두루누비(공공데이터포털) · © OpenStreetMap contributors (ODbL). 오픈스트리트맵 코스의 소요시간은 거리 기준 추정값이에요.</p>
+      </footer>
     </div>
 
     <div id="detail-view" hidden>
