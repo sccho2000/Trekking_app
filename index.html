@@ -7,54 +7,73 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main>
-    <h1>오늘 어디 걸을까</h1>
-    <p class="lead">서울·경기 걷기 코스를 세 가지만 물어보고 골라 드려요.</p>
-    <button type="button" id="fav-toggle" class="chip" aria-pressed="false">★ 즐겨찾기 (0)</button>
+  <main id="app">
+    <div id="home-view">
+      <h1>오늘 어디 걸을까</h1>
+      <p class="lead">서울·경기 걷기 코스를 세 가지만 물어보고 골라 드려요.</p>
+      <button type="button" id="fav-toggle" class="chip" aria-pressed="false">★ 즐겨찾기 (0)</button>
 
-    <section id="conditions" aria-label="조건 선택">
-      <div class="group" data-group="time">
-        <span class="label">시간</span>
-        <button type="button" class="chip" data-value="short">2시간 안팎</button>
-        <button type="button" class="chip" data-value="half">반나절</button>
-        <button type="button" class="chip" data-value="full">하루 종일</button>
+      <section id="conditions" aria-label="조건 선택">
+        <div class="group" data-group="time">
+          <span class="label">시간</span>
+          <button type="button" class="chip" data-value="short">2시간 안팎</button>
+          <button type="button" class="chip" data-value="half">반나절</button>
+          <button type="button" class="chip" data-value="full">하루 종일</button>
+        </div>
+        <div class="group" data-group="origin">
+          <span class="label">출발</span>
+          <button type="button" class="chip" data-value="here">내 위치</button>
+          <button type="button" class="chip" data-value="seoul">서울</button>
+          <button type="button" class="chip" data-value="gyeonggi">경기</button>
+        </div>
+        <div class="group" data-group="move">
+          <span class="label">이동</span>
+          <button type="button" class="chip" data-value="transit">대중교통</button>
+          <button type="button" class="chip" data-value="car">자차</button>
+        </div>
+        <button type="button" id="go" class="primary big">코스 추천받기</button>
+      </section>
+
+      <p id="status" role="status" aria-live="polite"></p>
+
+      <section id="region-prompt" hidden>
+        <p>위치를 사용할 수 없어요. 출발 지역을 골라 주세요.</p>
+        <button type="button" data-region="seoul">서울</button>
+        <button type="button" data-region="gyeonggi">경기</button>
+      </section>
+
+      <section id="results" aria-label="추천 코스"></section>
+
+      <nav id="pager" aria-label="페이지 이동" hidden>
+        <button type="button" id="prev">← 이전 10개</button>
+        <span id="page-info"></span>
+        <button type="button" id="next">다음 10개 →</button>
+      </nav>
+
+      <section id="empty" hidden>
+        <p id="empty-text">조건에 맞는 코스가 없어요.</p>
+      </section>
+      <button type="button" id="relax" hidden>조건 완화하기</button>
+    </div>
+
+    <div id="detail-view" hidden>
+      <div class="detail-grid">
+        <section class="pane" aria-label="코스 정보">
+          <h2 class="pane-title">코스 정보</h2>
+          <div id="course-map" class="map"></div>
+          <div id="course-info"></div>
+        </section>
+        <section class="pane" aria-label="현재 위치에서 출발점까지">
+          <h2 class="pane-title">현재 위치 → 코스 출발점</h2>
+          <div id="approach-map" class="map"></div>
+          <div id="approach-info"></div>
+          <button type="button" id="open-directions" class="primary big" disabled>네이버 지도에서 길찾기</button>
+        </section>
       </div>
-      <div class="group" data-group="origin">
-        <span class="label">출발</span>
-        <button type="button" class="chip" data-value="here">내 위치</button>
-        <button type="button" class="chip" data-value="seoul">서울</button>
-        <button type="button" class="chip" data-value="gyeonggi">경기</button>
+      <div class="detail-footer">
+        <button type="button" id="back" class="primary big">← 처음 화면으로</button>
       </div>
-      <div class="group" data-group="move">
-        <span class="label">이동</span>
-        <button type="button" class="chip" data-value="transit">대중교통</button>
-        <button type="button" class="chip" data-value="car">자차</button>
-      </div>
-      <button type="button" id="go" class="primary big">코스 추천받기</button>
-    </section>
-
-    <p id="status" role="status" aria-live="polite"></p>
-
-    <section id="region-prompt" hidden>
-      <p>위치를 사용할 수 없어요. 출발 지역을 골라 주세요.</p>
-      <button type="button" data-region="seoul">서울</button>
-      <button type="button" data-region="gyeonggi">경기</button>
-    </section>
-
-    <section id="results" aria-label="추천 코스"></section>
-
-    <section id="empty" hidden>
-      <p id="empty-text">조건에 맞는 코스가 없어요.</p>
-    </section>
-    <button type="button" id="relax" hidden>조건 완화하기</button>
-
-    <section id="map-panel" hidden aria-label="코스 미리보기">
-      <h2 id="map-title"></h2>
-      <div id="map"></div>
-      <button type="button" id="open-naver">네이버 지도 앱·웹에서 열기</button>
-    </section>
-
-    <section id="confirm-panel" hidden aria-label="코스 확정"></section>
+    </div>
   </main>
   <script type="module" src="src/app.js"></script>
 </body>

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { loadNaverMap, showRoute } from '../src/mapview.js';
+import { loadNaverMap, showRoute, showApproach } from '../src/mapview.js';
 import { makeCourse } from './fixtures.js';
 
 function fakeNaver({ mapThrows = false } = {}) {
@@ -71,5 +71,48 @@ test('인증 실패 콜백이 오면 SVG와 인증 안내로 바꾼다', () => {
   globalThis.navermap_authFailure();
   assert.ok(container.innerHTML.includes('<svg'));
   assert.ok(container.innerHTML.includes('인증'));
+  delete globalThis.navermap_authFailure;
+});
+
+const here = { lat: 37.5, lng: 127 };
+const start = { lat: 37.6, lng: 126.9 };
+
+test('showApproach: naver가 있으면 내 위치·출발점 마커 2개와 점선 1개', () => {
+  const { naver, calls } = fakeNaver();
+  showApproach({ innerHTML: '' }, here, start, naver);
+  assert.equal(calls.markers.length, 2);
+  assert.equal(calls.polylines.length, 1);
+  assert.equal(calls.polylines[0].path.length, 2);
+  assert.ok(calls.fit);
+});
+
+test('showApproach: 현재 위치가 없으면 출발점 마커만', () => {
+  const { naver, calls } = fakeNaver();
+  showApproach({ innerHTML: '' }, null, start, naver);
+  assert.equal(calls.markers.length, 1);
+  assert.equal(calls.polylines.length, 0);
+});
+
+test('showApproach: naver가 없으면 두 점을 잇는 SVG', () => {
+  const container = { innerHTML: '' };
+  showApproach(container, here, start, null);
+  assert.ok(container.innerHTML.includes('<svg') && container.innerHTML.includes('<polyline'));
+});
+
+test('showApproach: 위치가 없고 naver도 없으면 예외 없이 안내만', () => {
+  const container = { innerHTML: '' };
+  showApproach(container, null, start, null);
+  assert.ok(container.innerHTML.includes('네이버 지도'));
+});
+
+test('지도가 둘이어도 인증 실패 콜백 하나가 둘 다 SVG로 바꾼다', () => {
+  const a = fakeNaver();
+  const left = { innerHTML: '' };
+  const right = { innerHTML: '' };
+  showRoute(left, makeCourse(), a.naver);
+  showApproach(right, here, start, a.naver);
+  globalThis.navermap_authFailure();
+  assert.ok(left.innerHTML.includes('<svg') && left.innerHTML.includes('인증'));
+  assert.ok(right.innerHTML.includes('<svg') && right.innerHTML.includes('인증'));
   delete globalThis.navermap_authFailure;
 });

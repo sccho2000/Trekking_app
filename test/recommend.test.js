@@ -68,11 +68,20 @@ test('내 위치인데 위치가 없으면 needsRegion', () => {
   assert.deepEqual(r, { cards: [], needsRegion: true, canRelax: false, noNearby: false });
 });
 
-test('후보가 많아도 카드는 3개, canRelax false', () => {
-  const courses = ['a', 'b', 'c', 'd', 'e'].map((id) => half(id));
+test('후보는 개수 제한 없이 모두 반환한다(페이지 나누기는 화면에서)', () => {
+  const courses = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'].map((id) => half(id));
   const r = recommend({ courses, time: 'half', origin: 'seoul', position: null });
-  assert.equal(r.cards.length, 3);
+  assert.equal(r.cards.length, 12);
   assert.equal(r.canRelax, false);
+});
+
+test('내 위치 선택에서 12개 모두 가까운 순으로 정렬된다', () => {
+  const courses = Array.from({ length: 12 }, (_, i) =>
+    half(`c${i}`, { start: { lat: 37.5 + (11 - i) * 0.01, lng: 127, name: `n${i}` } }));
+  const r = recommend({ courses, time: 'half', origin: 'here', position: at(37.5, 127) });
+  const d = r.cards.map((c) => c.distanceKm);
+  assert.deepEqual(d, [...d].sort((a, b) => a - b));
+  assert.equal(r.cards[0].course.id, 'c11');
 });
 
 test('3개 미만이면 canRelax, 0개면 빈 카드', () => {

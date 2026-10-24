@@ -7,8 +7,8 @@ export const REGION_CENTER = {
 
 const ORIGIN_REGION = { seoul: '서울', gyeonggi: '경기' };
 const BUCKET_CENTER_MIN = { short: 120, half: 210, full: 330 };
-const MAX_CARDS = 3;
-export const MAX_NEARBY_KM = 60;
+const MIN_RESULTS = 3; // 이보다 적으면 '조건 완화하기'를 제안한다
+export const MAX_NEARBY_KM = 100;
 
 export function durationBucket(min) {
   if (min <= 150) return 'short';
@@ -55,11 +55,11 @@ export function recommend({ courses, time, origin, position, relaxTime = false }
       : rank(a) - rank(b) || secondary(a) - secondary(b),
   );
 
-  const cards = candidates.slice(0, MAX_CARDS).map(({ course, distanceKm }) => ({
+  const cards = candidates.map(({ course, distanceKm }) => ({
     course,
     distanceKm,
     mediumDifficulty: course.difficulty === '보통',
     reason: buildReason(course, distanceKm),
   }));
-  return { cards, needsRegion: false, canRelax: cards.length < MAX_CARDS && !relaxTime, noNearby };
+  return { cards, needsRegion: false, canRelax: cards.length < MIN_RESULTS && !relaxTime, noNearby };
 }
